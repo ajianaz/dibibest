@@ -41,6 +41,8 @@ pub struct Caps {
     pub dialects: &'static [&'static str],
 }
 
+/// Every variant maps to a stable machine-readable code via [`CoreError::code`];
+/// the full catalog lives in `docs/errors.md`.
 #[derive(Debug, thiserror::Error)]
 pub enum CoreError {
     #[error("parse error in {format}: {message}")]
@@ -57,4 +59,67 @@ pub enum CoreError {
     UnknownFormat(String),
     #[error("internal: {0}")]
     Internal(String),
+}
+
+impl CoreError {
+    /// Stable error code (see `docs/errors.md`). Codes never change meaning.
+    pub fn code(&self) -> &'static str {
+        match self {
+            CoreError::Parse {
+                format: "dbml",
+                message,
+            } => dbml::error_code(message),
+            CoreError::Parse { .. } => "parse-error",
+            CoreError::Emit { .. } => "emit-error",
+            // ponytail: keyed on the message prefix; give detection its own variant if more callers need it
+            CoreError::UnknownFormat(m) if m.starts_with("could not detect") => "detect-failed",
+            CoreError::UnknownFormat(_) => "unknown-format",
+            CoreError::Internal(_) => "internal",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dbml_code(src: &str) -> &'static str {
+        dbml::DbmlCodec.parse(src).unwrap_err().code()
+    }
+
+    #[test]
+    fn error_codes_are_stable() {
+        assert_eq!(dbml_code("Table a {\n id int [pk]\n"), "unclosed-block");
+        assert_eq!(dbml_code("}"), "unbalanced-brace");
+        assert_eq!(dbml_code("Foo bar"), "unrecognized-statement");
+        assert_eq!(dbml_code("Table a {\n !!!\n}"), "bad-column-line");
+        assert_eq!(
+            dbml_code("Table a {\n id int\n indexes {\n (a\n }\n}"),
+            "bad-index-line"
+        );
+        assert_eq!(dbml_code("Ref: nonsense"), "bad-ref-line");
+        assert_eq!(
+            sql::SqlCodec::default()
+                .parse("CREATE TABL")
+                .unwrap_err()
+                .code(),
+            "parse-error"
+        );
+        assert_eq!(
+            CoreError::UnknownFormat("x".into()).code(),
+            "unknown-format"
+        );
+        assert_eq!(
+            registry_convert("???", &FormatId::new("sql"))
+                .unwrap_err()
+                .code(),
+            "detect-failed"
+        );
+        let emit = CoreError::Emit {
+            format: "x",
+            message: String::new(),
+        };
+        assert_eq!(emit.code(), "emit-error");
+        assert_eq!(CoreError::Internal(String::new()).code(), "internal");
+    }
 }

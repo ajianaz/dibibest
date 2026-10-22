@@ -1,0 +1,19 @@
+# dibibest-mcp image. Two targets:
+#   runtime  (default) — builds a static musl binary from source: `docker build -f Dockerfile.mcp .`
+#   prebuilt — used by release-mcp.yml; copies the per-arch musl binaries built
+#              natively in CI from dist/<amd64|arm64>/dibibest-mcp (no QEMU).
+
+FROM rust:1-alpine AS build
+RUN apk add --no-cache musl-dev
+WORKDIR /src
+COPY . .
+RUN cargo build --release --locked -p dibibest-mcp
+
+FROM scratch AS prebuilt
+ARG TARGETARCH
+COPY dist/${TARGETARCH}/dibibest-mcp /dibibest-mcp
+ENTRYPOINT ["/dibibest-mcp"]
+
+FROM scratch AS runtime
+COPY --from=build /src/target/release/dibibest-mcp /dibibest-mcp
+ENTRYPOINT ["/dibibest-mcp"]

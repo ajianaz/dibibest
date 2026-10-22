@@ -1,0 +1,6 @@
+.git
+target
+fuzz/target
+fuzz/corpus
+fuzz/artifacts
+apps/web/node_modules

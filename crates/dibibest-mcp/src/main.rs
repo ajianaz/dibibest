@@ -19,25 +19,34 @@ fn main() -> std::io::Result<()> {
         if line.trim().is_empty() {
             continue;
         }
-        let Ok(req) = serde_json::from_str::<Value>(&line) else {
-            continue;
+        let reply = match serde_json::from_str::<Value>(&line) {
+            Ok(req) => {
+                let Some(id) = req.get("id").cloned() else {
+                    continue; // notification (e.g. notifications/initialized): no reply
+                };
+                let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
+                match handle(method, req.get("params"), &registry) {
+                    Some(result) => json!({ "jsonrpc": "2.0", "id": id, "result": result }),
+                    None => rpc_error(id, -32601, format!("method not found: {method}")),
+                }
+            }
+            Err(e) => rpc_error(Value::Null, -32700, format!("parse error: {e}")),
         };
-        let id = req.get("id").cloned().unwrap_or(Value::Null);
-        let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
-        let resp = handle(method, req.get("params"), &registry);
         let mut out = stdout.lock();
-        serde_json::to_writer(
-            &mut out,
-            &json!({ "jsonrpc": "2.0", "id": id, "result": resp }),
-        )?;
+        serde_json::to_writer(&mut out, &reply)?;
         out.write_all(b"\n")?;
         out.flush()?;
     }
     Ok(())
 }
 
-fn handle(method: &str, params: Option<&Value>, registry: &Registry) -> Value {
-    match method {
+fn rpc_error(id: Value, code: i32, message: String) -> Value {
+    json!({ "jsonrpc": "2.0", "id": id, "error": { "code": code, "message": message } })
+}
+
+/// `None` = method not found (JSON-RPC -32601).
+fn handle(method: &str, params: Option<&Value>, registry: &Registry) -> Option<Value> {
+    Some(match method {
         "initialize" => json!({
             "protocolVersion": "2025-06-18",
             "capabilities": { "tools": {} },
@@ -52,7 +61,7 @@ fn handle(method: &str, params: Option<&Value>, registry: &Registry) -> Value {
                 "name": "convert_schema",
                 "title": "Convert schema bolak-balik",
                 "description": "Convert a database schema between formats (dbml, sql, sql:mysql, sql:sqlite, prisma, erdjson; plain sql = PostgreSQL). \
-                                ERD-JSON is on the roadmap. Returns the converted \
+                                Returns the converted \
                                 output plus a fidelity report of what survived.",
                 "inputSchema": {
                     "type": "object",
@@ -77,8 +86,8 @@ fn handle(method: &str, params: Option<&Value>, registry: &Registry) -> Value {
             let args = p.get("arguments").cloned().unwrap_or(json!({}));
             tool_call(name, &args, registry)
         }
-        other => json!({ "error": format!("unsupported method: {other}") }),
-    }
+        _ => return None,
+    })
 }
 
 fn tool_call(name: &str, args: &Value, registry: &Registry) -> Value {
@@ -123,7 +132,7 @@ fn tool_call(name: &str, args: &Value, registry: &Registry) -> Value {
                     resp
                 }
                 Err(e) => json!({
-                    "content": [{ "type": "text", "text": format!("error: {e}") }],
+                    "content": [{ "type": "text", "text": format!("error[{}]: {e}", e.code()) }],
                     "isError": true
                 }),
             }
