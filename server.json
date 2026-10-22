@@ -1,18 +1,18 @@
 {
   "$schema": "https://cdn.jsdelivr.net/npm/@modelcontextprotocol/schema@latest/server.schema.json",
-  "name": "io.github.ajianaz/dibibest",
+  "name": "io.github.codecoradev/dibibest",
   "title": "dibibest — bidirectional schema conversion",
   "description": "Convert database schemas bolak-balik (DBML ↔ SQL DDL) with fidelity reporting: every conversion reports what survived and whether the round-trip is lossless.",
-  "websiteUrl": "https://github.com/ajianaz/dibibest",
+  "websiteUrl": "https://github.com/codecoradev/dibibest",
   "repository": {
-    "url": "https://github.com/ajianaz/dibibest",
+    "url": "https://github.com/codecoradev/dibibest",
     "source": "github"
   },
   "version": "0.1.0",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/ajianaz/dibibest-mcp:latest",
+      "identifier": "ghcr.io/codecoradev/dibibest-mcp:latest",
       "transport": "stdio",
       "environmentVariables": []
     }

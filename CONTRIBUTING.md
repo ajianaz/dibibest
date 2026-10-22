@@ -5,7 +5,7 @@ Thanks for your interest in contributing! 🎉
 ## Getting started
 
 ```bash
-git clone https://github.com/ajianaz/dibibest.git
+git clone https://github.com/codecoradev/dibibest.git
 cd dibibest
 cargo test --workspace        # everything must stay green
 ```
