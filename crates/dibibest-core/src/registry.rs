@@ -68,7 +68,7 @@ impl Default for Registry {
 }
 
 impl Registry {
-    /// Built-in codecs: dbml, sql (PostgreSQL), sql:mysql, sql:sqlite, prisma. (erd-json lands in R4.)
+    /// Built-in codecs: dbml, sql (PostgreSQL), sql:mysql, sql:sqlite, prisma, erdjson.
     pub fn with_defaults() -> Self {
         Registry {
             codecs: vec![
@@ -77,6 +77,7 @@ impl Registry {
                 Box::new(SqlCodec::new(Dialect::MySql)),
                 Box::new(SqlCodec::new(Dialect::Sqlite)),
                 Box::new(crate::prisma::PrismaCodec),
+                Box::new(crate::erdjson::ErdJsonCodec),
             ],
         }
     }
@@ -208,6 +209,9 @@ fn report_caps_gaps(ir: &SchemaIR, _from: &FormatId, to: &dyn Codec) -> Vec<Stri
 /// behavior, but content-based so pasted text works too.
 pub fn detect_format(src: &str) -> Option<&'static str> {
     let t = src.trim_start();
+    if t.starts_with('{') && t.contains("\"nodes\"") && t.contains("\"edges\"") {
+        return Some("erdjson");
+    }
     let upper_head: String = t
         .chars()
         .take(4096)

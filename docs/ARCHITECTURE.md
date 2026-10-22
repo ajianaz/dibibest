@@ -33,6 +33,10 @@ inside, two-function API outside).
 5. **MCP is a thin layer** over the same core; no second conversion
    implementation exists anywhere in the repo.
 
+6. **ERD-JSON is the canvas contract.** The `erdjson` codec emits deterministic
+   render data (nodes/edges/meta, see `docs/erdjson-schema.md`); layout runs as a
+   separate step (`erdjson::apply_layout`) so snapshots stay stable.
+
 ## Known scaffold limitations (tracked)
 
 - DBML subset (Project/Table/Ref/Enum/indexes+expressions/settings). Unknown

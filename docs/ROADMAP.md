@@ -22,7 +22,7 @@ cannot meet them is renegotiated, not silently extended.
 - Exit: DBML→Prisma→DBML idempotent on corpus; dialect matrix documented.
 
 ## M3 — R3: ERD-JSON + canvas (Svelte 5)
-- ERD-JSON codec; Svelte 5 + svelte-flow canvas (read-only first), edit via
+- ERD-JSON codec (done: contract `docs/erdjson-schema.md`, grid layout hook); Svelte 5 + svelte-flow canvas (read-only first), edit via
   DBML text panel; export PNG/SVG.
 - Exit: paste DBML → render → export; fidelity chip reflects real report.
 
