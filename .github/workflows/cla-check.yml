@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   cla-check:
@@ -52,6 +51,6 @@ jobs:
           else:
               print(f"❌ {author} has NOT signed the CLA")
               print("Sign it here: https://cla.codecora.dev")
-              print("::error::CLA not signed. Sign at https://cla.codecora.dev then re-run this check.")
+              print("After signing, close and reopen this PR (or ask a maintainer to re-run the check) — new runs only trigger on PR events.")
               sys.exit(1)
           EOF
