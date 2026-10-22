@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>erdhub — canvas-first (Liam mode)</title>
+<style>
+  :root {
+    --bg-0: #0b0d10; --bg-1: #11141a; --bg-2: #171b23; --bg-3: #1e2430;
+    --line: #262d3a; --line-soft: #1c222d;
+    --text-1: #e8ecf2; --text-2: #9aa4b2; --text-3: #8b95a5;
+    --accent: #4f8cff; --accent-strong: #2563eb;
+    --ok: #3ecf8e; --warn: #f5b544; --fk: #b48cff; --pk: #f5b544;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+    --r-sm: 6px; --r-md: 10px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg-0); color: var(--text-1); font-family: var(--sans); font-size: 14px; display: flex; flex-direction: column; overflow: hidden; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+
+  .topbar { height: 48px; flex: 0 0 48px; background: var(--bg-1); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-4); }
+  .brand { display: flex; align-items: center; gap: var(--sp-2); font-weight: 650; }
+  .brand .mark { width: 22px; height: 22px; border-radius: var(--r-sm); background: linear-gradient(135deg, var(--accent), #8a5cff); display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #0b0d10; }
+  .project-name { color: var(--text-2); font-weight: 500; }
+  .layout-switch { display: flex; gap: 2px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 2px; margin-left: var(--sp-2); }
+  .layout-switch button { padding: 5px 12px; border-radius: 8px; color: var(--text-2); font-weight: 550; font-size: 13px; }
+  .layout-switch button[aria-selected="true"] { background: var(--accent-strong); color: #fff; }
+  .topbar .spacer { flex: 1; }
+  .fidelity-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--ok); background: rgba(62,207,142,0.09); border: 1px solid rgba(62,207,142,0.25); padding: 4px 10px; border-radius: 999px; }
+  .btn-primary { background: var(--accent-strong); color: #fff; font-weight: 600; font-size: 13.5px; padding: 7px 16px; border-radius: var(--r-md); }
+
+  .main { flex: 1; display: flex; min-height: 0; }
+
+  /* ── CANVAS FIRST (primary, left, flex 1) ── */
+  .pane-canvas { flex: 1; position: relative; background: var(--bg-0); overflow: hidden; }
+  .canvas-grid { position: absolute; inset: 0; background-image: radial-gradient(circle, #1a2029 1px, transparent 1px); background-size: 24px 24px; }
+  .toolbar { position: absolute; top: var(--sp-3); left: var(--sp-3); z-index: 5; display: flex; gap: 2px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 3px; }
+  .toolbar button { padding: 6px 11px; border-radius: 7px; color: var(--text-2); font-size: 12.5px; font-weight: 550; }
+  .toolbar button:hover { background: var(--bg-3); color: var(--text-1); }
+  .drop-hint { position: absolute; bottom: var(--sp-3); left: 50%; transform: translateX(-50%); z-index: 5; background: var(--bg-2); border: 1px dashed var(--text-3); border-radius: var(--r-md); padding: 6px var(--sp-4); font-size: 12.5px; color: var(--text-2); }
+
+  .svgwrap { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  .edge { fill: none; stroke: #b48cff; stroke-width: 1.6; }
+  .zoom-hud { position: absolute; bottom: var(--sp-3); right: var(--sp-3); z-index: 5; display: flex; gap: var(--sp-3); }
+  .zoom-hud .grp { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px 10px; font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+
+  .erd-node { position: absolute; width: 230px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(0,0,0,0.35); font-size: 13px; z-index: 2; cursor: grab; }
+  .erd-node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,0.35); }
+  .erd-node header { padding: 8px var(--sp-3); border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; gap: var(--sp-2); }
+  .erd-node header .tbl-icon { color: var(--accent); font-size: 11px; }
+  .erd-node header h3 { font-size: 12.5px; font-weight: 650; }
+  .erd-node header .badge { margin-left: auto; color: var(--text-3); font-size: 11px; }
+  .erd-node ul { list-style: none; padding: var(--sp-1) 0; }
+  .erd-node li { display: flex; align-items: center; gap: var(--sp-2); padding: 4px var(--sp-3); color: var(--text-2); font-family: var(--mono); font-size: 12px; }
+  .erd-node li:hover { background: var(--bg-3); }
+  .erd-node li .key { width: 16px; text-align: center; font-size: 11px; font-weight: 700; }
+  .erd-node li .key.pk { color: var(--pk); }
+  .erd-node li .key.fk { color: var(--fk); }
+  .erd-node li .ctype { margin-left: auto; color: var(--text-3); font-size: 11px; }
+  .erd-node li .edit { margin-left: var(--sp-1); color: var(--text-3); font-size: 11px; opacity: 0; }
+  .erd-node li:hover .edit { opacity: 1; }
+
+  /* ── GENERATED TEXT PANE (right, 40%) ── */
+  .pane-text { width: 40%; flex: 0 0 40%; background: var(--bg-1); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .pane-title { font-size: 11.5px; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: space-between; }
+  .pane-title .actions { display: flex; gap: var(--sp-2); }
+  .pane-title .actions button { font-size: 11.5px; color: var(--accent); font-weight: 600; padding: 2px 6px; border-radius: 5px; text-transform: none; letter-spacing: 0; }
+  .pane-title .actions button:hover { background: var(--bg-3); }
+  .code-area { flex: 1; padding: var(--sp-3) 0; font-family: var(--mono); font-size: 13px; line-height: 1.7; overflow: auto; }
+  .cl { display: flex; padding: 0 var(--sp-4); white-space: pre; }
+  .cl:hover { background: var(--bg-2); }
+  .cl.flash { background: rgba(62,207,142,0.10); box-shadow: inset 3px 0 0 var(--ok); border-radius: 0 4px 4px 0; margin-right: var(--sp-3); }
+  .cl .ln { color: var(--text-3); flex: 0 0 26px; text-align: right; margin-right: var(--sp-4); user-select: none; }
+  .kw { color: #7da2ff; } .typ { color: #e8c07d; } .rel { color: var(--fk); }
+  .text-foot { border-top: 1px solid var(--line-soft); padding: var(--sp-2) var(--sp-4); font-size: 12px; color: var(--text-3); }
+  .text-foot .ok { color: var(--ok); }
+
+  .statusbar { height: 28px; flex: 0 0 28px; background: var(--bg-1); border-top: 1px solid var(--line); display: flex; align-items: center; gap: var(--sp-4); padding: 0 var(--sp-4); font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .statusbar .sep { color: var(--line); }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">eh</span> erdhub <span class="project-name">/ shop-demo</span></div>
+    <div class="layout-switch" role="tablist" aria-label="Workspace layout">
+      <button role="tab" aria-selected="false">▤ Text-first</button>
+      <button role="tab" aria-selected="true">▦ Canvas-first</button>
+      <button role="tab" aria-selected="false">☰ Explorer</button>
+    </div>
+    <div class="spacer"></div>
+    <span class="fidelity-chip">◈ round-trip 100% lossless</span>
+    <button class="btn-primary">Export</button>
+  </header>
+
+  <div class="main">
+    <section class="pane-canvas" aria-label="ERD canvas — primary editor">
+      <div class="canvas-grid"></div>
+      <div class="toolbar">
+        <button>⌖ Fit</button>
+        <button>＋ Table</button>
+        <button>＋ Relation</button>
+        <button>⊞ Collapse all</button>
+      </div>
+
+      <svg class="svgwrap" aria-hidden="true">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#b48cff"/>
+          </marker>
+        </defs>
+        <circle cx="416" cy="146" r="3.5" fill="#b48cff"/>
+        <path class="edge" d="M 416 146 C 490 146, 500 178, 562 178" marker-end="url(#arrow)"/>
+      </svg>
+
+      <article class="erd-node selected" style="left:180px;top:115px" aria-label="users (selected on canvas)">
+        <header><span class="tbl-icon">▦</span><h3>users</h3><span class="badge">3c</span></header>
+        <ul>
+          <li><span class="key pk">PK</span> id <span class="ctype">integer</span><span class="edit">✎</span></li>
+          <li><span class="key"></span> email <span class="ctype">varchar</span><span class="edit">✎</span></li>
+          <li><span class="key"></span> created_at <span class="ctype">datetime</span><span class="edit">✎</span></li>
+        </ul>
+      </article>
+
+      <article class="erd-node" style="left:566px;top:125px" aria-label="orders">
+        <header><span class="tbl-icon">▦</span><h3>orders</h3><span class="badge">4c</span></header>
+        <ul>
+          <li><span class="key pk">PK</span> id <span class="ctype">integer</span><span class="edit">✎</span></li>
+          <li><span class="key fk">FK</span> user_id <span class="ctype">integer</span><span class="edit">✎</span></li>
+          <li><span class="key"></span> status <span class="ctype">varchar</span><span class="edit">✎</span></li>
+          <li><span class="key"></span> total_cents <span class="ctype">integer</span><span class="edit">✎</span></li>
+        </ul>
+      </article>
+
+      <div class="drop-hint">drag column → another table to create a relation</div>
+      <div class="zoom-hud"><span class="grp">100%</span><span class="grp">edit directly on canvas</span></div>
+    </section>
+
+    <section class="pane-text" aria-label="Generated DBML — live output">
+      <div class="pane-title">generated schema.dbml
+        <span class="actions"><button>Copy</button><button>Export ▾</button></span>
+      </div>
+      <div class="code-area" aria-label="Generated DBML">
+<div class="cl"><span class="ln">1</span><span class="kw">Table</span> users {</div>
+<div class="cl"><span class="ln">2</span>  id <span class="typ">integer</span> [pk]</div>
+<div class="cl"><span class="ln">3</span>  email <span class="typ">varchar</span> [not null, unique]</div>
+<div class="cl"><span class="ln">4</span>  created_at <span class="typ">datetime</span></div>
+<div class="cl"><span class="ln">5</span>}</div>
+<div class="cl"><span class="ln">6</span> </div>
+<div class="cl"><span class="ln">7</span><span class="kw">Table</span> orders {</div>
+<div class="cl"><span class="ln">8</span>  id <span class="typ">integer</span> [pk]</div>
+<div class="cl"><span class="ln">9</span>  user_id <span class="typ">integer</span> [not null]</div>
+<div class="cl"><span class="ln">10</span>  status <span class="typ">varchar</span></div>
+<div class="cl flash"><span class="ln">11</span>  total_cents <span class="typ">integer</span> [default: 0]</div>
+<div class="cl"><span class="ln">12</span>}</div>
+<div class="cl"><span class="ln">13</span> </div>
+<div class="cl"><span class="ln">14</span><span class="rel">Ref:</span> orders.user_id &gt; users.id</div>
+      </div>
+      <div class="text-foot"><span class="ok">✓ auto-generated from canvas</span> · copy/export anytime · switch to Text-first to edit text-side</div>
+    </section>
+  </div>
+
+  <footer class="statusbar">
+    <span>canvas-first layout</span><span class="sep">·</span>
+    <span>drag & edit on canvas → DBML regenerates live</span><span class="sep">·</span>
+    <span>DBML stays the lossless source of truth</span><span class="sep">·</span>
+    <span>⌘/ switch layout</span>
+  </footer>
+</body>
+</html>

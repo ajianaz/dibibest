@@ -1,0 +1,33 @@
+{
+  "name": "dibibest-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "wasm": "sh scripts/wasm.sh",
+    "dev": "sh scripts/wasm.sh && vite dev",
+    "build": "sh scripts/wasm.sh && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "check": "sh scripts/wasm.sh && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test:smoke": "sh scripts/wasm.sh && vite build && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0",
+    "@sveltejs/adapter-static": "^4.0.0",
+    "@sveltejs/kit": "^3.1.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/node": "^26.6.5",
+    "svelte": "^5",
+    "svelte-check": "^4.7.7",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.5"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@lezer/highlight": "^1.2.5",
+    "@xyflow/svelte": "^1.7"
+  }
+}
