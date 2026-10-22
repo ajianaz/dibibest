@@ -28,14 +28,25 @@ jobs:
       - name: Check PR author signature
         env:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           python3 - <<'EOF'
           import json, os, sys
           author = os.environ["PR_AUTHOR"]
+          owner = os.environ["REPO_OWNER"]
+          if author == owner:
+              # Repo owner authored the CLA itself; self-signature exempt.
+              print(f"✅ {author} is the repository owner — CLA exempt")
+              sys.exit(0)
           with open("signatures.json") as f:
               data = json.load(f)
           signatures = data.get("signatures", [])
-          signed = any(s.get("github_login") == author or s.get("login") == author for s in signatures)
+          signed = any(
+              s.get("github_username") == author
+              or s.get("github_login") == author
+              or s.get("login") == author
+              for s in signatures
+          )
           if signed:
               print(f"✅ {author} has signed the CLA")
           else:
