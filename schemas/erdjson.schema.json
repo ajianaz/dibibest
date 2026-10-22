@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/codecoradev/dibibest/schemas/erdjson.schema.json",
+  "title": "dibibest ERD-JSON v1",
+  "type": "object",
+  "required": ["version", "nodes", "edges", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } },
+    "enums": { "type": "array", "items": { "$ref": "#/$defs/enum" } },
+    "meta": {
+      "type": "object",
+      "required": ["layout"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceFormat": { "type": "string" },
+        "layout": { "enum": [null, "grid", "elk", "dagre", "manual"] }
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["id", "name", "position", "columns"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_]+(-[0-9]+)?$" },
+        "name": { "type": "string" },
+        "position": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["x", "y"],
+              "additionalProperties": false,
+              "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
+            }
+          ]
+        },
+        "columns": { "type": "array", "items": { "$ref": "#/$defs/column" } },
+        "indexes": { "type": "array", "items": { "$ref": "#/$defs/index" } },
+        "note": { "type": "string" }
+      }
+    },
+    "column": {
+      "type": "object",
+      "required": ["name", "type", "isPk", "isFk", "isUnique", "isNullable"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "isPk": { "type": "boolean" },
+        "isFk": { "type": "boolean" },
+        "isUnique": { "type": "boolean" },
+        "isNullable": { "type": "boolean" },
+        "autoincrement": { "const": true },
+        "default": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "index": {
+      "type": "object",
+      "required": ["name", "columns"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "unique": { "type": "boolean" },
+        "expr": { "type": "string" }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "from", "to", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "from": { "$ref": "#/$defs/end" },
+        "to": { "$ref": "#/$defs/end" },
+        "kind": { "enum": ["many-to-one", "one-to-one", "one-to-many"] },
+        "label": { "type": "string" }
+      }
+    },
+    "end": {
+      "type": "object",
+      "required": ["table", "columns"],
+      "additionalProperties": false,
+      "properties": {
+        "table": { "type": "string", "description": "node id" },
+        "columns": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "enum": {
+      "type": "object",
+      "required": ["name", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "values": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

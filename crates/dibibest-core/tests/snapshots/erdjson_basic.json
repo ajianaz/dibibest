@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "posts",
+      "name": "posts",
+      "position": null,
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "isPk": true,
+          "isFk": false,
+          "isUnique": false,
+          "isNullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "int",
+          "isPk": false,
+          "isFk": true,
+          "isUnique": false,
+          "isNullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "posts_user",
+          "columns": [
+            "user_id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "id": "users",
+      "name": "users",
+      "position": null,
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "isPk": true,
+          "isFk": false,
+          "isUnique": false,
+          "isNullable": false,
+          "autoincrement": true
+        },
+        {
+          "name": "email",
+          "type": "varchar",
+          "isPk": false,
+          "isFk": false,
+          "isUnique": true,
+          "isNullable": false,
+          "note": "login"
+        },
+        {
+          "name": "role",
+          "type": "role",
+          "isPk": false,
+          "isFk": false,
+          "isUnique": false,
+          "isNullable": true,
+          "default": "user"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "posts.user_id->users.id",
+      "from": {
+        "table": "posts",
+        "columns": [
+          "user_id"
+        ]
+      },
+      "to": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "kind": "many-to-one"
+    }
+  ],
+  "enums": [
+    {
+      "name": "role",
+      "values": [
+        "user",
+        "admin"
+      ]
+    }
+  ],
+  "meta": {
+    "layout": null
+  }
+}
