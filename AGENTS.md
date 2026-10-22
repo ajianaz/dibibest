@@ -49,8 +49,8 @@ docs/                  # ROADMAP, ARCHITECTURE
   (CI green ≠ review-clean — read the Cora comment; "Review could not complete"
   is a blocker, re-run until a real verdict). Self-PR verdicts are posted as
   structured comments (GitHub forbids self-approval).
-- Dependency bots (dependabot/renovate/github-actions) are CLA-exempt but their
-  PRs are triaged by maintainers; breaking bumps (e.g. sqlparser major) require
+- Dependency bots (dependabot/renovate/github-actions) have their
+  PRs triaged by maintainers; breaking bumps (e.g. sqlparser major) require
   a hand-migration PR that supersedes the bot's.
 
 ## Language

@@ -29,12 +29,9 @@ cargo test --workspace        # everything must stay green
    cargo test --workspace
    ```
 
-## CLA
+## License
 
-This project uses a Contributor License Agreement. The `cla-check` CI job
-verifies your signature against the org's signatures file on your first PR —
-you'll get a link to sign if it's missing. Contributions are made under the
-project's MIT license.
+Contributions are licensed to the project under the MIT license (inbound = outbound). No additional agreement is required.
 
 ## No compensation
 
