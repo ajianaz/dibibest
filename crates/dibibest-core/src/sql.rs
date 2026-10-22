@@ -54,28 +54,20 @@ impl Codec for SqlCodec {
                         };
                         for opt in &cd.options {
                             match &opt.option {
-                                ColumnOption::Unique {
-                                    is_primary: true, ..
-                                } => {
+                                ColumnOption::PrimaryKey(_) => {
                                     c.pk = true;
                                     c.not_null = true;
                                 }
-                                ColumnOption::Unique {
-                                    is_primary: false, ..
-                                } => c.unique = true,
+                                ColumnOption::Unique(_) => c.unique = true,
                                 ColumnOption::NotNull => c.not_null = true,
                                 ColumnOption::Default(expr) => {
                                     c.default = Some(expr.to_string());
                                 }
-                                ColumnOption::ForeignKey {
-                                    foreign_table,
-                                    referred_columns,
-                                    ..
-                                } => pending_refs.push(Ref {
+                                ColumnOption::ForeignKey(fk) => pending_refs.push(Ref {
                                     from_table: t.name.clone(),
                                     from_cols: vec![c.name.clone()],
-                                    to_table: object_name_to_string(foreign_table),
-                                    to_cols: referred_columns.iter().map(ident_str).collect(),
+                                    to_table: object_name_to_string(&fk.foreign_table),
+                                    to_cols: fk.referred_columns.iter().map(ident_str).collect(),
                                     kind: RefKind::ManyToOne,
                                     name: None,
                                 }),
@@ -86,8 +78,8 @@ impl Codec for SqlCodec {
                     }
                     for cons in &ct.constraints {
                         match cons {
-                            TableConstraint::PrimaryKey { columns, .. } => {
-                                for ic in columns {
+                            TableConstraint::PrimaryKey(pk) => {
+                                for ic in &pk.columns {
                                     if let Expr::Identifier(id) = &ic.column.expr {
                                         if let Some(col) =
                                             t.columns.iter_mut().find(|c| c.name == id.value)
@@ -98,16 +90,11 @@ impl Codec for SqlCodec {
                                     }
                                 }
                             }
-                            TableConstraint::ForeignKey {
-                                columns,
-                                foreign_table,
-                                referred_columns,
-                                ..
-                            } => pending_refs.push(Ref {
+                            TableConstraint::ForeignKey(fk) => pending_refs.push(Ref {
                                 from_table: t.name.clone(),
-                                from_cols: columns.iter().map(ident_str).collect(),
-                                to_table: object_name_to_string(foreign_table),
-                                to_cols: referred_columns.iter().map(ident_str).collect(),
+                                from_cols: fk.columns.iter().map(ident_str).collect(),
+                                to_table: object_name_to_string(&fk.foreign_table),
+                                to_cols: fk.referred_columns.iter().map(ident_str).collect(),
                                 kind: RefKind::ManyToOne,
                                 name: None,
                             }),
