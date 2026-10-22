@@ -55,6 +55,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dibibest-wasm"
+version = "0.1.0"
+dependencies = [
+ "dibibest-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
