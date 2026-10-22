@@ -38,6 +38,12 @@ jobs:
           python3 - <<'EOF'
           import json, os, sys
           owner = os.environ["REPO_OWNER"]
+          BOTS = {"dependabot[bot]", "renovate[bot]", "github-actions[bot]", "app/dependabot", "app/renovate"}
+          pr_author = os.environ["PR_AUTHOR"]
+          # Bots can't sign a CLA; maintainers triage their PRs
+          if pr_author in BOTS:
+              print(f"✅ {pr_author} — CLA exempt (bot/owner)")
+              sys.exit(0)
           authors = {os.environ["PR_AUTHOR"]}
           # --paginate emits one JSON array per page; merge them
           dec, txt, i = json.JSONDecoder(), open("commit_authors.json").read(), 0
