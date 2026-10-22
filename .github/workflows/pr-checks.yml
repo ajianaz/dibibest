@@ -1,0 +1,65 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [develop, main]
+
+jobs:
+  branch-naming:
+    name: Branch Naming
+    runs-on: ubuntu-latest
+    if: "!contains(fromJSON('[\"dependabot[bot]\", \"renovate[bot]\", \"github-actions[bot]\", \"app/dependabot\", \"app/renovate\"]'), github.event.pull_request.user.login)"
+    steps:
+      - name: Check branch name
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if echo "$HEAD_REF" | grep -qE "^(develop|main)$"; then
+            echo "⏭️ Skipping branch naming check for protected branch: $HEAD_REF"
+            exit 0
+          fi
+          ALLOWED="^(feat|fix|docs|chore|perf|security|refactor|test|build|ci)/"
+          if echo "$HEAD_REF" | grep -qE "$ALLOWED"; then
+            echo "✅ Branch name follows convention"
+          else
+            echo "::error::Branch name must start with one of: feat/, fix/, docs/, chore/, perf/, security/, refactor/, test/, build/, ci/"
+            echo "Current: $HEAD_REF"
+            exit 1
+          fi
+
+  pr-template:
+    name: PR Description
+    runs-on: ubuntu-latest
+    if: "!contains(fromJSON('[\"dependabot[bot]\", \"renovate[bot]\", \"github-actions[bot]\", \"app/dependabot\", \"app/renovate\"]'), github.event.pull_request.user.login)"
+    steps:
+      - name: Check PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          MISSING=""
+          echo "$PR_BODY" | grep -qi "## What" || MISSING="$MISSING\n  - ## What"
+          echo "$PR_BODY" | grep -qi "## Why" || MISSING="$MISSING\n  - ## Why"
+          echo "$PR_BODY" | grep -qi "## Testing" || MISSING="$MISSING\n  - ## Testing"
+          if [ -n "$MISSING" ]; then
+            echo "::error::PR description is missing required sections:$MISSING"
+            exit 1
+          fi
+          echo "✅ PR description has required sections"
+
+  commit-conventional:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          PATTERN="^(feat|fix|docs|chore|perf|refactor|test|build|ci|security)(\(.+\))?!?: .+"
+          if echo "$PR_TITLE" | grep -qE "$PATTERN"; then
+            echo "✅ PR title follows Conventional Commits"
+          else
+            echo "::error::PR title must follow Conventional Commits format: type(scope): description"
+            echo "Current: $PR_TITLE"
+            exit 1
+          fi
