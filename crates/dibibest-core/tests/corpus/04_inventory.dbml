@@ -1,0 +1,35 @@
+// Inventory / warehouse — composite keys and composite refs
+Table warehouses {
+  code varchar(8) [pk]
+  name varchar [not null]
+}
+
+Table skus {
+  sku varchar(32) [pk]
+  description varchar
+  unit_weight_g integer
+}
+
+Table stock_levels {
+  warehouse_code varchar(8)
+  sku varchar(32)
+  bin varchar(16)
+  qty integer [not null, default: 0]
+  indexes {
+    (warehouse_code, sku) [pk]
+    (warehouse_code, bin) [unique]
+  }
+}
+
+Table stock_moves {
+  id bigint [pk, increment]
+  warehouse_code varchar(8) [not null]
+  sku varchar(32) [not null]
+  delta integer [not null]
+  reason varchar [note: 'receipt | pick | adjust']
+  moved_at timestamp [default: `now()`]
+}
+
+Ref: stock_levels.warehouse_code > warehouses.code
+Ref: stock_levels.sku > skus.sku
+Ref stock_move_level: stock_moves.(warehouse_code, sku) > stock_levels.(warehouse_code, sku)

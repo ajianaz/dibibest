@@ -1,0 +1,19 @@
+// Settings the subset does not model must survive verbatim
+Table departments [headercolor: #3498DB] {
+  id int [pk]
+}
+
+Table employees [headercolor: #E74C3C] {
+  id int [pk, increment]
+  dept_id int [not null, note: 'FK to departments']
+  salary numeric(10, 2) [color: red, default: 0]
+  nickname varchar [null]
+  // regular comment kept out of the IR
+  email varchar [unique, note: 'work address'] // trailing comment
+  indexes {
+    (dept_id) [type: hash]
+    (dept_id, email) [unique, type: btree, name: 'emp_dept_email']
+  }
+}
+
+Ref: employees.dept_id > departments.id [delete: set null, update: no action]

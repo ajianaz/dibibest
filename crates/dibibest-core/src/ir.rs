@@ -13,6 +13,13 @@ pub struct SchemaIR {
     pub enums: Vec<EnumDef>,
     #[serde(default)]
     pub project: Option<String>,
+    /// Verbatim lines of the `Project { … }` body (settings, notes).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub project_body: Vec<String>,
+    /// Passthrough: schema-level settings the codec did not recognize (e.g. Ref
+    /// settings like `delete: cascade`). Re-emitted as `// unknown: …`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unknown: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -24,6 +31,9 @@ pub struct Table {
     pub indexes: Vec<IndexDef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    /// Passthrough: table-/index-level settings the codec did not recognize.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unknown: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -42,6 +52,9 @@ pub struct Column {
     pub default: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    /// Passthrough: column settings the codec did not recognize, verbatim.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unknown: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

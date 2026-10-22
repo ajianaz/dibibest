@@ -1,0 +1,45 @@
+// Project management — Ref blocks, named refs, all cardinalities
+Table teams {
+  id int [pk]
+  name varchar [not null]
+}
+
+Table projects {
+  id int [pk]
+  team_id int
+  lead_id int
+}
+
+Table members {
+  id int [pk]
+  team_id int
+  display_name varchar
+}
+
+Table tasks {
+  id int [pk]
+  project_id int
+  assignee_id int
+  parent_task_id int
+  title varchar [not null]
+}
+
+Table task_details {
+  task_id int [pk]
+  estimate_h numeric(5, 1)
+}
+
+Ref {
+  projects.team_id > teams.id
+  members.team_id > teams.id
+}
+
+Ref project_lead {
+  projects.lead_id > members.id
+}
+
+Ref fk_task_project: tasks.project_id > projects.id
+Ref: tasks.assignee_id > members.id
+Ref: tasks.parent_task_id > tasks.id
+Ref: task_details.task_id - tasks.id
+Ref: teams.id < projects.team_id

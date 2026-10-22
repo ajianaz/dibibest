@@ -1,0 +1,17 @@
+// Quoted identifiers, spaces and mixed-case types
+Table "order items" {
+  "line no" INTEGER [pk]
+  "Product Name" VarChar(100) [not null]
+  "unit price" Decimal(8, 2) [default: 0]
+  Notes TEXT
+}
+
+Table "User Accounts" {
+  ID BigInt [pk, increment]
+  "e-mail" Varchar(255) [unique]
+  indexes {
+    ("e-mail", ID) [name: 'ua_email_id']
+  }
+}
+
+Ref: "order items"."line no" > "User Accounts".ID

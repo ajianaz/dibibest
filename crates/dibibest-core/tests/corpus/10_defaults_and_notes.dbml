@@ -1,0 +1,25 @@
+// Defaults with function-ish values and notes with punctuation
+Table settings {
+  id serial [pk]
+  token varchar(64) [default: `encode(gen_random_bytes(32), 'hex')`, unique]
+  retries smallint [default: 3]
+  ratio float [default: 0.75]
+  enabled boolean [default: true]
+  label varchar [default: 'a, b, c', note: 'commas, in, notes']
+  url varchar [note: 'see http://example.com/docs // not a comment']
+  payload jsonb [default: `'{"k": [1, 2]}'::jsonb`]
+  created_at timestamptz [default: `CURRENT_TIMESTAMP`]
+  note: 'Singleton-ish config table; don\'t add rows lightly'
+}
+
+Table audit_log {
+  id bigserial [pk]
+  at timestamptz [not null, default: `clock_timestamp()`]
+  actor varchar(100) [default: `current_user`]
+  action varchar [not null]
+  diff jsonb
+  indexes {
+    (at)
+    (actor, at) [name: 'audit_actor_time']
+  }
+}
