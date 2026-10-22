@@ -143,3 +143,24 @@ fn partial_index_kept_on_pg_sqlite_dropped_on_mysql() {
     );
     assert!(c.fidelity.dropped.iter().any(|g| g.contains("partial")));
 }
+
+#[test]
+fn fk_without_referenced_columns_never_emits_empty_parens() {
+    let reg = Registry::with_defaults();
+    let mut ir = reg.parse(DBML, &id("dbml")).unwrap();
+    ir.refs[0].to_cols.clear();
+
+    // target PK is known: defaults to it
+    let out = reg.emit(&ir, &id("sql")).unwrap();
+    assert!(!out.contains("()"), "{out}");
+    assert!(out.contains("REFERENCES users(id)"), "{out}");
+
+    // target PK unknown: FK skipped, never invalid SQL
+    let users = ir.tables.iter_mut().find(|t| t.name == "users").unwrap();
+    for c in &mut users.columns {
+        c.pk = false;
+    }
+    let out = reg.emit(&ir, &id("sql")).unwrap();
+    assert!(!out.contains("()") && !out.contains("FOREIGN KEY"), "{out}");
+    assert!(reg.parse(&out, &id("sql")).unwrap().refs.is_empty());
+}

@@ -235,11 +235,32 @@ impl Codec for SqlCodec {
                 lines.push(format!("  PRIMARY KEY ({})", self.qs(&pk_cols)));
             }
             for r in ir.refs.iter().filter(|r| r.from_table == t.name) {
+                // Omitted referenced columns mean "the target's primary key". If that
+                // is unknown, skip the FK (never emit `REFERENCES t()`); the registry's
+                // refs fidelity count reports the drop.
+                let to_cols = if r.to_cols.is_empty() {
+                    ir.tables
+                        .iter()
+                        .find(|x| x.name == r.to_table)
+                        .map(|x| {
+                            x.columns
+                                .iter()
+                                .filter(|c| c.pk)
+                                .map(|c| c.name.clone())
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default()
+                } else {
+                    r.to_cols.clone()
+                };
+                if to_cols.is_empty() || to_cols.len() != r.from_cols.len() {
+                    continue;
+                }
                 lines.push(format!(
                     "  FOREIGN KEY ({}) REFERENCES {}({})",
                     self.qs(&r.from_cols),
                     self.q(&r.to_table),
-                    self.qs(&r.to_cols)
+                    self.qs(&to_cols)
                 ));
             }
             let _ = writeln!(
