@@ -1,0 +1,67 @@
+// E-commerce — dbdiagram docs style
+Project ecommerce {
+  database_type: 'PostgreSQL'
+  Note: 'Online shop schema'
+}
+
+Enum order_status {
+  created [note: 'Waiting to be paid']
+  paid
+  shipped
+  delivered
+  cancelled
+}
+
+Table users {
+  id integer [pk, increment]
+  email varchar(255) [not null, unique, note: 'Login e-mail']
+  full_name varchar(120)
+  role varchar [default: 'customer']
+  created_at timestamp [default: `now()`]
+}
+
+Table merchants {
+  id integer [pk, increment]
+  name varchar [not null]
+  country_code varchar(2) [not null]
+  owner_id integer [ref: > users.id]
+  indexes {
+    (id, country_code) [unique, name: 'merchants_id_country']
+  }
+}
+
+Table products {
+  id integer [pk, increment]
+  merchant_id integer [not null, ref: > merchants.id]
+  name varchar(200) [not null]
+  price numeric(10, 2) [not null, default: 0]
+  tags text[]
+  indexes {
+    name
+    (merchant_id, name) [unique]
+  }
+}
+
+Table orders {
+  id integer [pk, increment]
+  user_id integer [not null]
+  status order_status [default: 'created']
+  total numeric(12, 2) [default: 0]
+  created_at timestamp [default: `now()`]
+  indexes {
+    (user_id, created_at) [name: 'orders_user_created']
+    (`lower(status::text)`) [name: 'orders_status_lower']
+  }
+  note: 'One row per checkout'
+}
+
+Table order_items {
+  order_id integer [ref: > orders.id]
+  product_id integer [ref: > products.id]
+  quantity integer [not null, default: 1]
+  indexes {
+    (order_id, product_id) [pk]
+  }
+}
+
+Ref: orders.user_id > users.id [delete: cascade]

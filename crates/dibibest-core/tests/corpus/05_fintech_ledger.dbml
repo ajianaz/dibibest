@@ -1,0 +1,51 @@
+// Fintech double-entry ledger
+Enum account_type {
+  asset
+  liability
+  equity
+  revenue
+  expense
+}
+
+Enum entry_side {
+  debit
+  credit
+}
+
+Table accounts {
+  id bigint [pk, increment]
+  code varchar(16) [unique, not null]
+  type account_type [not null]
+  currency char(3) [not null, default: 'USD']
+  closed_at timestamptz
+}
+
+Table transactions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  idempotency_key varchar(64) [unique, not null]
+  posted_at timestamptz [not null, default: `now()`]
+  memo text
+}
+
+Table entries {
+  id bigint [pk, increment]
+  transaction_id uuid [not null]
+  account_id bigint [not null]
+  side entry_side [not null]
+  amount numeric(20, 4) [not null, note: 'Always positive; side gives the sign']
+  indexes {
+    (transaction_id, account_id)
+    (account_id, `id DESC`) [name: 'entries_account_recent']
+    (`amount > 0`) [name: 'entries_positive']
+  }
+}
+
+Table balances {
+  account_id bigint [pk]
+  balance numeric(20, 4) [not null, default: 0]
+  as_of timestamptz
+}
+
+Ref: entries.transaction_id > transactions.id [delete: cascade]
+Ref: entries.account_id > accounts.id
+Ref: balances.account_id - accounts.id

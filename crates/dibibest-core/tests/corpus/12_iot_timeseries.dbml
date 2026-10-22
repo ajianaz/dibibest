@@ -1,0 +1,44 @@
+// IoT telemetry — expression indexes, array and parametrized types
+Project iot {
+  database_type: 'TimescaleDB'
+  Note {
+    'Hypertable on readings.ts'
+  }
+}
+
+Table devices {
+  id uuid [pk]
+  model varchar(40) [not null]
+  firmware varchar(20)
+  labels text[]
+  location geography(Point, 4326)
+  registered_at timestamptz [default: `now()`]
+}
+
+Table readings {
+  device_id uuid [not null]
+  ts timestamptz [not null]
+  metric varchar(30) [not null]
+  value double precision
+  raw bytea
+  indexes {
+    (device_id, ts) [pk]
+    (metric, ts)
+    (`date_trunc('hour', ts)`) [name: 'readings_hour']
+    (`coalesce(value, 0)`, ts) [name: 'readings_coalesced']
+  }
+}
+
+Table alerts {
+  id bigint [pk, increment]
+  device_id uuid [not null]
+  rule varchar [not null]
+  fired_at timestamptz
+  resolved boolean [default: false]
+  indexes {
+    (`fired_at WHERE resolved = false`) [unique, name: 'alerts_open']
+  }
+}
+
+Ref: readings.device_id > devices.id
+Ref: alerts.device_id > devices.id

@@ -1,0 +1,43 @@
+// SaaS multi-tenant, schema-qualified names
+Enum billing.plan {
+  free
+  pro
+  enterprise
+}
+
+Table core.tenants {
+  id uuid [pk, default: `gen_random_uuid()`]
+  slug varchar(63) [unique, not null]
+  plan billing.plan [not null, default: 'free']
+  created_at timestamptz [default: `now()`]
+}
+
+Table core.users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  tenant_id uuid [not null]
+  email varchar(255) [not null]
+  is_admin boolean [default: false]
+  indexes {
+    (tenant_id, email) [unique, name: 'users_tenant_email']
+  }
+}
+
+Table core.api_keys {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  key_hash char(64) [not null, unique]
+  scopes jsonb [default: `'{}'::jsonb`]
+  expires_at timestamptz
+}
+
+Table billing.invoices {
+  id bigint [pk, increment]
+  tenant_id uuid [not null]
+  amount_cents bigint [not null]
+  currency char(3) [default: 'USD']
+  note: 'Immutable once issued'
+}
+
+Ref: core.users.tenant_id > core.tenants.id
+Ref: core.api_keys.tenant_id > core.tenants.id
+Ref: billing.invoices.tenant_id > core.tenants.id

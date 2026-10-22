@@ -1,0 +1,8 @@
+// Agent-style one-liners and compact forms
+Project tiny { database_type: 'SQLite' }
+Enum level { low medium high }
+Table a { id integer [pk] }
+Table b { id integer [pk, increment] a_id integer [not null] }
+Table c { code varchar [not null, unique] }
+Ref: b.a_id > a.id
+Ref { c.code - a.id }
