@@ -38,6 +38,7 @@ jobs:
           python3 - <<'EOF'
           import json, os, sys
           owner = os.environ["REPO_OWNER"]
+          BOTS = {"dependabot[bot]", "renovate[bot]", "github-actions[bot]", "app/dependabot", "app/renovate"}
           authors = {os.environ["PR_AUTHOR"]}
           # --paginate emits one JSON array per page; merge them
           dec, txt, i = json.JSONDecoder(), open("commit_authors.json").read(), 0
@@ -51,8 +52,8 @@ jobs:
           with open("signatures.json") as f:
               signatures = json.load(f).get("signatures", [])
           def ok(a):
-              # Repo owner authored the CLA itself; self-signature exempt.
-              return a == owner or any(
+              # Repo owner authored the CLA itself; bots can't sign. Both exempt, per author.
+              return a == owner or a in BOTS or any(
                   a in (s.get("github_username"), s.get("github_login"), s.get("login"))
                   for s in signatures
               )
