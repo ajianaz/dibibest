@@ -6,6 +6,7 @@
 
 pub mod dbml;
 pub mod ir;
+pub mod prisma;
 pub mod registry;
 pub mod sql;
 
@@ -31,6 +32,8 @@ pub trait Codec {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Caps {
     pub indexes: bool,
+    /// Expression / partial indexes (columns empty, `IndexDef::expr` set).
+    pub expr_indexes: bool,
     pub enums: bool,
     pub defaults: bool,
     pub notes: bool,

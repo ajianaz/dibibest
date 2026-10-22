@@ -21,6 +21,7 @@ impl Codec for DbmlCodec {
     fn caps(&self) -> Caps {
         Caps {
             indexes: true,
+            expr_indexes: true,
             enums: true,
             defaults: true,
             notes: true,

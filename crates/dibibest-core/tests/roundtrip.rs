@@ -113,7 +113,7 @@ fn detect_format_prefers_dbml_and_sql() {
 fn unknown_format_is_a_clean_error() {
     let reg = Registry::with_defaults();
     let err = reg
-        .convert_explicit(SHOP_DBML, &FormatId::new("prisma"), &FormatId::new("sql"))
+        .convert_explicit(SHOP_DBML, &FormatId::new("erd-json"), &FormatId::new("sql"))
         .unwrap_err();
     assert!(err.to_string().contains("unknown format"));
 }

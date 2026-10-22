@@ -51,15 +51,15 @@ fn handle(method: &str, params: Option<&Value>, registry: &Registry) -> Value {
             "tools": [{
                 "name": "convert_schema",
                 "title": "Convert schema bolak-balik",
-                "description": "Convert a database schema between formats (dbml, sql). \
-                                Prisma and ERD-JSON are on the roadmap. Returns the converted \
+                "description": "Convert a database schema between formats (dbml, sql, prisma). \
+                                ERD-JSON is on the roadmap. Returns the converted \
                                 output plus a fidelity report of what survived.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "source": { "type": "string", "description": "Schema source text (DBML or SQL DDL)" },
-                        "from": { "type": "string", "description": "Source format id; auto-detected when omitted", "enum": ["dbml", "sql"] },
-                        "to": { "type": "string", "description": "Target format id", "enum": ["dbml", "sql"] }
+                        "source": { "type": "string", "description": "Schema source text (DBML, SQL DDL or Prisma schema)" },
+                        "from": { "type": "string", "description": "Source format id; auto-detected when omitted", "enum": ["dbml", "sql", "prisma"] },
+                        "to": { "type": "string", "description": "Target format id", "enum": ["dbml", "sql", "prisma"] }
                     },
                     "required": ["source", "to"]
                 }
