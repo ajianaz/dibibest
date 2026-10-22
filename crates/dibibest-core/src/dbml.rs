@@ -68,6 +68,25 @@ fn expand_one_line_blocks(src: &str) -> Vec<String> {
     out
 }
 
+/// Map a dbml parse-failure message to its stable code (`docs/errors.md`).
+pub(crate) fn error_code(message: &str) -> &'static str {
+    let has = |s: &str| message.contains(s);
+    if has("block not closed") {
+        "unclosed-block"
+    } else if has("statement `}`") {
+        "unbalanced-brace"
+    } else if has("bad index line") {
+        "bad-index-line"
+    } else if has("bad column line") {
+        "bad-column-line"
+    } else if has("Ref line") || has("bad inline ref") {
+        "bad-ref-line"
+    } else {
+        // unsupported top-level statement / nested block / alias / ''' note
+        "unrecognized-statement"
+    }
+}
+
 fn parse_dbml(src: &str) -> Result<SchemaIR, CoreError> {
     let mut ir = SchemaIR::default();
     let mut block: Option<Block> = None;

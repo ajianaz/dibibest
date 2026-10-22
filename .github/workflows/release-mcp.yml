@@ -1,0 +1,109 @@
+name: Release MCP
+
+# Builds static musl dibibest-mcp binaries (amd64 + arm64) and the GHCR image.
+# The image is PUSHED ONLY on `release: published`. workflow_dispatch is always
+# a dry run (build + validate, no push, no registry login).
+#
+# OWNER PRE-REQUISITE before the first real publish: grant this repo write
+# access to the ghcr.io/codecoradev/dibibest-mcp package (Package settings →
+# Manage Actions access → role Write). The job uses the built-in GITHUB_TOKEN
+# with `packages: write`; no extra secret is needed once that access exists.
+# Publishing to the MCP registry itself (mcp-publisher) is a separate manual
+# step and is NOT performed here — see docs/ROADMAP.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version for the dry-run (no leading v)
+        default: 0.0.0-dryrun
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/codecoradev/dibibest-mcp
+
+jobs:
+  binaries:
+    name: Binary (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-latest, target: x86_64-unknown-linux-musl }
+          - { arch: arm64, runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup target add ${{ matrix.target }}
+      - run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release --locked -p dibibest-mcp --target ${{ matrix.target }}
+      - name: Smoke (static binary answers initialize)
+        run: |
+          bin=target/${{ matrix.target }}/release/dibibest-mcp
+          echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | "$bin" | grep -q '"serverInfo"'
+          file "$bin" | grep -Eq 'statically linked|static-pie linked'
+      - run: mkdir -p dist/${{ matrix.arch }} && cp target/${{ matrix.target }}/release/dibibest-mcp dist/${{ matrix.arch }}/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dibibest-mcp-${{ matrix.arch }}
+          path: dist/${{ matrix.arch }}/dibibest-mcp
+          if-no-files-found: error
+
+  image:
+    name: Image
+    needs: binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUSH: ${{ github.event_name == 'release' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Resolve version
+        run: |
+          if [ "${{ github.event_name }}" = release ]; then v="${GITHUB_REF_NAME#v}"; else v="${{ inputs.version }}"; fi
+          echo "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$' || { echo "bad version: $v"; exit 1; }
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dibibest-mcp-*
+          path: dist
+      - run: |
+          for a in amd64 arm64; do
+            mv "dist/dibibest-mcp-$a" "dist/$a"
+            chmod +x "dist/$a/dibibest-mcp"
+          done
+      - name: Render server.json (substitute {{version}})
+        run: |
+          jq --arg v "$VERSION" '.version=$v | .packages[0].identifier |= sub("\\{\\{version\\}\\}"; $v)' server.json > dist/server.json
+          ! grep -q '{{' dist/server.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server.json
+          path: dist/server.json
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'release'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Arch images (${{ env.VERSION }}-amd64, -arm64)
+        run: |
+          for a in amd64 arm64; do
+            docker buildx build -f Dockerfile.mcp --target prebuilt \
+              --platform "linux/$a" \
+              --provenance=false \
+              -t "$IMAGE:$VERSION-$a" \
+              $([ "$PUSH" = true ] && echo --push || echo --output=type=cacheonly) .
+          done
+      - name: Multi-arch manifest ${{ env.VERSION }}
+        if: github.event_name == 'release'
+        run: docker buildx imagetools create -t "$IMAGE:$VERSION" "$IMAGE:$VERSION-amd64" "$IMAGE:$VERSION-arm64"
