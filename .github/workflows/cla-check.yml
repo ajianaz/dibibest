@@ -1,0 +1,46 @@
+name: CLA Check
+
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cla-check:
+    name: CLA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch signatures
+        run: |
+          # Signatures live in the org .github repo (public raw)
+          wget -q -O signatures.json "https://raw.githubusercontent.com/codecoradev/.github/main/.cla/signatures.json" 2>/dev/null \
+            || curl -sfL "https://raw.githubusercontent.com/codecoradev/.github/main/.cla/signatures.json" -o signatures.json 2>/dev/null
+          if [ ! -s signatures.json ]; then
+            echo "::error::Could not fetch CLA signatures file — treating as infra failure, NOT as unsigned."
+            exit 1
+          fi
+          python3 -c "import json; json.load(open('signatures.json'))" || { echo "::error::signatures.json invalid JSON"; exit 1; }
+
+      - name: Check PR author signature
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys
+          author = os.environ["PR_AUTHOR"]
+          with open("signatures.json") as f:
+              data = json.load(f)
+          signatures = data.get("signatures", [])
+          signed = any(s.get("github_login") == author or s.get("login") == author for s in signatures)
+          if signed:
+              print(f"✅ {author} has signed the CLA")
+          else:
+              print(f"❌ {author} has NOT signed the CLA")
+              print("Sign it here: https://cla.codecora.dev")
+              print("::error::CLA not signed. Sign at https://cla.codecora.dev then re-run this check.")
+              sys.exit(1)
+          EOF

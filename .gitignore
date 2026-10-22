@@ -1,7 +1,7 @@
 /target
+/.cora
 Cargo.lock.bak
 *.swp
 .DS_Store
-# local scratch
 /scratch
 *.local.*
