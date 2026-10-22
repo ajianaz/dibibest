@@ -23,6 +23,7 @@ impl Codec for SqlCodec {
     fn caps(&self) -> Caps {
         Caps {
             indexes: true,
+            expr_indexes: true,
             enums: false, // PG ENUM TYPES: R2
             defaults: true,
             notes: false, // COMMENT ON: R2

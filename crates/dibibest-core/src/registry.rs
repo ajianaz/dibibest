@@ -67,12 +67,13 @@ impl Default for Registry {
 }
 
 impl Registry {
-    /// Built-in codecs: dbml, sql. (prisma + erd-json land in R2/R4.)
+    /// Built-in codecs: dbml, sql, prisma. (erd-json lands in R4.)
     pub fn with_defaults() -> Self {
         Registry {
             codecs: vec![
                 Box::new(crate::dbml::DbmlCodec),
                 Box::new(crate::sql::SqlCodec),
+                Box::new(crate::prisma::PrismaCodec),
             ],
         }
     }
@@ -174,6 +175,22 @@ fn report_caps_gaps(ir: &SchemaIR, _from: &FormatId, to: &dyn Codec) -> Vec<Stri
         .any(|t| t.note.is_some() || t.columns.iter().any(|c| c.note.is_some()));
     if has_indexes && !caps.indexes {
         gaps.push("indexes have no equivalent in target format".into());
+    }
+    let expr: Vec<String> =
+        ir.tables
+            .iter()
+            .flat_map(|t| {
+                t.indexes.iter().filter(|i| i.expr.is_some()).map(move |i| {
+                    format!("{}.{}", t.name, i.name.as_deref().unwrap_or("<unnamed>"))
+                })
+            })
+            .collect();
+    if !expr.is_empty() && !caps.expr_indexes {
+        gaps.push(format!(
+            "{} expression/partial index(es) dropped — no equivalent in target format: {}",
+            expr.len(),
+            expr.join(", ")
+        ));
     }
     if has_enums && !caps.enums {
         gaps.push("enums have no equivalent in target format".into());

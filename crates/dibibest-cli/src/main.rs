@@ -1,6 +1,6 @@
 //! dibibest — convert database schemas bolak-balik.
 //!
-//! `dibibest convert` reads DBML/SQL, emits DBML/SQL (Prisma + ERD-JSON on the
+//! `dibibest convert` reads DBML/SQL/Prisma, emits any of them (ERD-JSON on the
 //! roadmap), and always prints a fidelity report: what survived, what dropped.
 
 use std::io::Read;
