@@ -51,15 +51,15 @@ fn handle(method: &str, params: Option<&Value>, registry: &Registry) -> Value {
             "tools": [{
                 "name": "convert_schema",
                 "title": "Convert schema bolak-balik",
-                "description": "Convert a database schema between formats (dbml, sql, prisma). \
+                "description": "Convert a database schema between formats (dbml, sql, sql:mysql, sql:sqlite, prisma; plain sql = PostgreSQL). \
                                 ERD-JSON is on the roadmap. Returns the converted \
                                 output plus a fidelity report of what survived.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "source": { "type": "string", "description": "Schema source text (DBML, SQL DDL or Prisma schema)" },
-                        "from": { "type": "string", "description": "Source format id; auto-detected when omitted", "enum": ["dbml", "sql", "prisma"] },
-                        "to": { "type": "string", "description": "Target format id", "enum": ["dbml", "sql", "prisma"] }
+                        "from": { "type": "string", "description": "Source format id; auto-detected when omitted", "enum": ["dbml", "sql", "sql:mysql", "sql:sqlite", "prisma"] },
+                        "to": { "type": "string", "description": "Target format id", "enum": ["dbml", "sql", "sql:mysql", "sql:sqlite", "prisma"] }
                     },
                     "required": ["source", "to"]
                 }
@@ -67,7 +67,7 @@ fn handle(method: &str, params: Option<&Value>, registry: &Registry) -> Value {
             {
                 "name": "list_formats",
                 "title": "List supported formats",
-                "description": "List format ids the server can convert between.",
+                "description": "List format ids the server can convert between, including SQL dialects (sql = PostgreSQL, sql:mysql, sql:sqlite).",
                 "inputSchema": { "type": "object", "properties": {} }
             }]
         }),
