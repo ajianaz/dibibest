@@ -1,0 +1,68 @@
+name: CLA Check
+
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  cla-check:
+    name: CLA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch signatures
+        run: |
+          # Signatures live in the org .github repo (public raw)
+          wget -q -O signatures.json "https://raw.githubusercontent.com/codecoradev/.github/main/.cla/signatures.json" 2>/dev/null \
+            || curl -sfL "https://raw.githubusercontent.com/codecoradev/.github/main/.cla/signatures.json" -o signatures.json 2>/dev/null
+          if [ ! -s signatures.json ]; then
+            echo "::error::Could not fetch CLA signatures file — treating as infra failure, NOT as unsigned."
+            exit 1
+          fi
+          python3 -c "import json; json.load(open('signatures.json'))" || { echo "::error::signatures.json invalid JSON"; exit 1; }
+
+      - name: Check PR author signature
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Every commit author on the PR must be covered, not just the PR author
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/commits" --paginate --jq '[.[].author.login] | unique' > commit_authors.json \
+            || { echo "::error::Could not list PR commits — treating as infra failure, NOT as unsigned."; exit 1; }
+          python3 - <<'EOF'
+          import json, os, sys
+          owner = os.environ["REPO_OWNER"]
+          authors = {os.environ["PR_AUTHOR"]}
+          # --paginate emits one JSON array per page; merge them
+          dec, txt, i = json.JSONDecoder(), open("commit_authors.json").read(), 0
+          while i < len(txt):
+              if txt[i].isspace():
+                  i += 1
+                  continue
+              arr, i = dec.raw_decode(txt, i)
+              # null = commit email not linked to a GitHub account: can't be verified, so counts as unsigned
+              authors.update(a or "<unlinked-commit-email>" for a in arr)
+          with open("signatures.json") as f:
+              signatures = json.load(f).get("signatures", [])
+          def ok(a):
+              # Repo owner authored the CLA itself; self-signature exempt.
+              return a == owner or any(
+                  a in (s.get("github_username"), s.get("github_login"), s.get("login"))
+                  for s in signatures
+              )
+          unsigned = sorted(a for a in authors if not ok(a))
+          for a in sorted(authors):
+              print(f"{'❌' if a in unsigned else '✅'} {a}")
+          if unsigned:
+              print(f"CLA NOT signed by: {', '.join(unsigned)}")
+              print("Sign it here: https://cla.codecora.dev")
+              print("After signing, close and reopen this PR (or ask a maintainer to re-run the check) — new runs only trigger on PR events.")
+              sys.exit(1)
+          print("✅ All commit authors have signed the CLA (or are the repository owner)")
+          EOF

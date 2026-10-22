@@ -11,7 +11,7 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 authors = ["Anaz S. Aji"]
-repository = "https://github.com/ajianaz/dibibest"
+repository = "https://github.com/codecoradev/dibibest"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
