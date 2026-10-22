@@ -2,6 +2,7 @@
 //! `convert` (auto-detect), `convert_explicit`, and the `Conversion` result with
 //! first-class [`Fidelity`]. Formats are plugins: implement [`Codec`], register.
 
+use crate::sql::{Dialect, SqlCodec};
 use crate::{Caps, Codec, CoreError, SchemaIR};
 use serde::{Deserialize, Serialize};
 
@@ -67,12 +68,14 @@ impl Default for Registry {
 }
 
 impl Registry {
-    /// Built-in codecs: dbml, sql, prisma. (erd-json lands in R4.)
+    /// Built-in codecs: dbml, sql (PostgreSQL), sql:mysql, sql:sqlite, prisma. (erd-json lands in R4.)
     pub fn with_defaults() -> Self {
         Registry {
             codecs: vec![
                 Box::new(crate::dbml::DbmlCodec),
-                Box::new(crate::sql::SqlCodec),
+                Box::new(SqlCodec::new(Dialect::Postgres)),
+                Box::new(SqlCodec::new(Dialect::MySql)),
+                Box::new(SqlCodec::new(Dialect::Sqlite)),
                 Box::new(crate::prisma::PrismaCodec),
             ],
         }
